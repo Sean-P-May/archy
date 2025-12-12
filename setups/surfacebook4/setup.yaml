@@ -1,0 +1,27 @@
+
+machine:
+  hostname: surfacebook4
+  timezone: America/New_York
+  locale: en_US.UTF-8
+  users:
+    - sean
+
+storage:
+  - disk: /dev/nvme0n1
+    scheme: gpt
+    wipe: true
+    partitions:
+      - mount: /boot
+        fs: vfat
+        size: 512M
+        flags: [esp]
+
+      - mount: swap
+        size: 4G
+
+      - mount: /
+        fs: ext4
+        size: fill
+
+packages: packages.txt
+  
