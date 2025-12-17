@@ -1,9 +1,7 @@
-
 from .disk import Disk
 from .partition import Partition
 from .system import SystemSettings, User
-from .packages import PackageInstaller,PackageGroup 
-from .system_settings import SystemSettings
+from .packages import PackageInstaller, PackageGroup
 
 __all__ = [
     "Disk",
@@ -11,6 +9,5 @@ __all__ = [
     "SystemSettings",
     "User",
     "PackageInstaller",
-    "SystemSettings",
+    "PackageGroup",
 ]
-
