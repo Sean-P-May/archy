@@ -22,11 +22,11 @@ def install():
 
 
 
-def set_setup_disks() 
+def set_setup_disks():
+    pass
 
 
 def vefity_internet():
     command = ["ping", "-c", "1", "archlinux.org"]   # Linux/macOS
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return result.returncode == 0
-

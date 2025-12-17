@@ -15,6 +15,26 @@ class Partition:
     fs: Optional[str] = None
     flags: list[str] = field(default_factory=list)
 
+    @classmethod
+    def from_config(cls, config: dict, parent_device: str, index: int) -> "Partition":
+        """Create a Partition from a raw config entry.
+
+        The device naming for NVMe disks uses the ``p`` suffix, while other
+        devices simply append the partition number.
+        """
+        if "nvme" in parent_device:
+            dev_path = f"{parent_device}p{index}"
+        else:
+            dev_path = f"{parent_device}{index}"
+
+        return cls(
+            mount=config["mount"],
+            dev_path=dev_path,
+            size=config["size"],
+            fs=config.get("fs"),
+            flags=config.get("flags", []),
+        )
+
     def __post_init__(self):
         # --- MOUNT VALIDATION ---
         # swap (special case)
@@ -73,4 +93,3 @@ class Partition:
             "M": 1024**2,
             "G": 1024**3,
         }[unit]
-
