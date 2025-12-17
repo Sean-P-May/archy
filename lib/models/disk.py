@@ -12,6 +12,22 @@ class Disk:
     wipe: bool
     partitions: list[Partition]
 
+    @classmethod
+    def from_config(cls, config: dict) -> "Disk":
+        return cls(
+            device=config["disk"],
+            scheme=config["scheme"],
+            wipe=config["wipe"],
+            partitions=[
+                Partition.from_config(part, config["disk"], index + 1)
+                for index, part in enumerate(config["partitions"])
+            ],
+        )
+
+    @classmethod
+    def from_storage(cls, storage: list[dict]) -> list["Disk"]:
+        return [cls.from_config(disk) for disk in storage]
+
     def __post_init__(self):
         if not self.device.startswith("/dev/"):
             raise ValueError(f"Invalid disk device: {self.device}")

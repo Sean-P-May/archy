@@ -149,7 +149,7 @@ def partition_disks(disks: List[Disk], dry_run=True):
         print("\nDisk: " + disk.device)
         for action in actions:
             print(f"  #{action['desc']}")
-            print(f"    {"".join(action["cmd"])}")
+            print("    " + " ".join(action["cmd"]))
         print("\n")
 
         total_actions += actions
@@ -191,7 +191,6 @@ def partition_disks(disks: List[Disk], dry_run=True):
 
 
         
-
 
 
 
