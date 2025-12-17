@@ -14,6 +14,7 @@ class SystemSettings:
     timezone: str
     locale: str
     users: List[User]
+    secure_boot: bool = False
 
     @classmethod
     def from_config(cls, config: dict) -> "SystemSettings":
@@ -25,4 +26,5 @@ class SystemSettings:
                 User(username=user["username"], sudo=user.get("sudo", False))
                 for user in config.get("users", [])
             ],
+            secure_boot=config.get("secure_boot", False),
         )
