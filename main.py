@@ -1,10 +1,11 @@
 from pathlib import Path
+import shutil
+import subprocess
 from lib.process_helpers import *
 from lib.models import Disk, PackageGroup, PackageInstaller, SystemSettings
 from lib.picker import pick_setup
 from lib.loader import load_setup_yaml
 from lib.partitioner import partition_disks
-import subprocess
 
 def main():
 
@@ -69,7 +70,7 @@ def main():
         exit()
 
 
-    partition_disks(disks)
+    partition_disks(disks, dry_run=False)
 
     for disk in disks:
         for partition in disk.partitions:
@@ -83,13 +84,34 @@ def main():
                 run_process_exit_on_fail(f"swapon {partition.dev_path}")
     
 
-    run_process_exit_on_fail("pacstrap -K /mnt base linux linux-firmware")
+    run_process_exit_on_fail("pacstrap -K /mnt base linux linux-firmware linux-headers base-devel")
 
-    chroot_process(f"ln -sf /usr/share/zoneinfo/Area/Location/{system.timezone} /etc/localtime")
+    run_process_exit_on_fail(["bash", "-lc", "genfstab -U /mnt >> /mnt/etc/fstab"])
+
+    chroot_process(["sed", "-i", f's/^#\\s*{system.locale}/{system.locale}/', "/etc/locale.gen"])
+    chroot_process(f"ln -sf /usr/share/zoneinfo/{system.timezone} /etc/localtime")
     chroot_process("hwclock --systohc")
     chroot_process("locale-gen")
-    chroot_process(f'echo "LANG={system.timezone}" >> /etc/locale.conf')
-    chroot_process(f'echo "{system.hostname}" >>  /etc/hostname')
+    chroot_process(["/bin/sh", "-c", f'echo "LANG={system.locale}" > /etc/locale.conf'])
+    chroot_process(["/bin/sh", "-c", f'echo "{system.hostname}" > /etc/hostname'])
+
+    set_root_password()
+    install_bootloader(disks)
+
+    apply_dotfiles(raw.get("dotfiles", []), base_dir)
+
+    setup_users(system)
+
+    package_user = select_package_user(system)
+    installer = PackageInstaller(package_user)
+
+    for group in package_groups:
+        if group.pacman:
+            installer.install_pacman_file(group.pacman)
+        if group.aur:
+            installer.install_aur_file(group.aur)
+
+    print("Install complete. Please reboot.")
 
     setup_users(system)
 
@@ -141,6 +163,73 @@ def setup_users(system: SystemSettings):
 
     if sudo_needed:
         enable_wheel_sudo()
+
+
+def install_bootloader(disks: list[Disk]):
+    root_partition = None
+    for disk in disks:
+        for partition in disk.partitions:
+            if partition.is_root():
+                root_partition = partition
+                break
+        if root_partition:
+            break
+
+    if not root_partition:
+        raise ValueError("No root partition found for bootloader configuration")
+
+    result = subprocess.run(
+        ["blkid", "-s", "UUID", "-o", "value", root_partition.dev_path],
+        capture_output=True,
+        text=True,
+    )
+
+    if result.returncode != 0:
+        raise RuntimeError(f"Unable to read UUID for {root_partition.dev_path}: {result.stderr}")
+
+    root_uuid = result.stdout.strip()
+    if not root_uuid:
+        raise RuntimeError(f"Missing UUID for {root_partition.dev_path}")
+
+    chroot_process(["bootctl", "install"])
+    chroot_process(["mkdir", "-p", "/boot/loader/entries"])
+
+    loader_conf = """default arch.conf\ntimeout 3\neditor no\n"""
+    entry_conf = f"""title Arch Linux\nlinux /vmlinuz-linux\ninitrd /initramfs-linux.img\noptions root=UUID={root_uuid} rw\n"""
+
+    chroot_process([
+        "/bin/sh", "-c",
+        f"cat > /boot/loader/loader.conf <<'EOF'\n{loader_conf}\nEOF"
+    ])
+
+    chroot_process([
+        "/bin/sh", "-c",
+        f"cat > /boot/loader/entries/arch.conf <<'EOF'\n{entry_conf}\nEOF"
+    ])
+
+    chroot_process(["systemctl", "enable", "NetworkManager.service"])
+
+
+def apply_dotfiles(entries: list[dict], base_dir: Path):
+    for entry in entries:
+        source = Path(entry["copy_from"])
+        if not source.is_absolute():
+            source = (base_dir / source).resolve()
+
+        if not source.exists():
+            raise FileNotFoundError(source)
+
+        destination = Path(entry["copy_to"])
+        if not destination.is_absolute():
+            destination = Path("/") / destination
+
+        destination = Path("/mnt") / destination.relative_to("/")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+
+        if source.is_dir():
+            shutil.copytree(source, destination, dirs_exist_ok=True)
+        else:
+            shutil.copy2(source, destination)
 
 if __name__ == "__main__":
     main()
