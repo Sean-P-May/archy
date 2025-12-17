@@ -113,6 +113,17 @@ def main():
 
     print("Install complete. Please reboot.")
 
+    setup_users(system)
+
+    package_user = select_package_user(system)
+    installer = PackageInstaller(package_user)
+
+    for group in package_groups:
+        if group.pacman:
+            installer.install_pacman_file(group.pacman)
+        if group.aur:
+            installer.install_aur_file(group.aur)
+
 
 
 
