@@ -1,11 +1,15 @@
+
 import os
 import yaml
 
-def load_setup_yaml(path):
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Setup file not found: {path}")
 
-    with open(path, "r") as f:
+def load_setup_yaml(setup_dir: str) -> dict:
+    setup_path = os.path.join("setups", setup_dir, "setup.yaml")
+
+    if not os.path.exists(setup_path):
+        raise FileNotFoundError(f"Setup file not found: {setup_path}")
+
+    with open(setup_path, "r") as f:
         try:
             data = yaml.safe_load(f)
         except yaml.YAMLError as e:
@@ -16,10 +20,4 @@ def load_setup_yaml(path):
 
     return data
 
-
-def load_and_validate_setup(setup_dir, validator):
-    setup_path = os.path.join("setups", setup_dir, "setup.yaml")
-    data = load_setup_yaml(setup_path)
-    validator.validate_setup(data)
-    return data
 

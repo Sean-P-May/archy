@@ -1,7 +1,7 @@
+
 from dataclasses import dataclass, field
 from typing import Optional
 
-VALID_MOUNTS = {"/", "/boot", "swap"}
 VALID_FS = {"ext4", "vfat", "btrfs", "xfs"}
 VALID_FLAGS = {"esp", "boot"}
 SIZE_SUFFIXES = {"K", "M", "G"}
@@ -10,16 +10,23 @@ SIZE_SUFFIXES = {"K", "M", "G"}
 @dataclass
 class Partition:
     mount: str
+    dev_path: str
     size: str
     fs: Optional[str] = None
     flags: list[str] = field(default_factory=list)
 
     def __post_init__(self):
-        # mount validation
-        if self.mount not in VALID_MOUNTS:
+        # --- MOUNT VALIDATION ---
+        # swap (special case)
+        if self.mount == "swap":
+            pass
+        # any path starting with "/" is allowed
+        elif self.mount.startswith("/"):
+            pass
+        else:
             raise ValueError(f"Invalid mount point: {self.mount}")
 
-        # size validation
+        # --- SIZE VALIDATION ---
         if self.size != "fill":
             if len(self.size) < 2:
                 raise ValueError(f"Invalid size format: {self.size}")
@@ -28,7 +35,7 @@ class Partition:
             if not value.isdigit() or suffix not in SIZE_SUFFIXES:
                 raise ValueError(f"Invalid size format: {self.size}")
 
-        # filesystem rules
+        # --- FILESYSTEM RULES ---
         if self.mount == "swap":
             if self.fs is not None:
                 raise ValueError("Swap partition must not define fs")
@@ -39,11 +46,15 @@ class Partition:
             if self.fs not in VALID_FS:
                 raise ValueError(f"Invalid filesystem: {self.fs}")
 
-        # flags validation
+        # --- FLAGS VALIDATION ---
         for flag in self.flags:
             if flag not in VALID_FLAGS:
                 raise ValueError(f"Invalid partition flag: {flag}")
 
+    def is_boot(self) -> bool:
+        return self.mount == "/boot"
+
+    
     def is_root(self) -> bool:
         return self.mount == "/"
 

@@ -1,14 +1,14 @@
 
-machine:
+system:
   hostname: surfacebook4
   timezone: America/New_York
   locale: en_US.UTF-8
   users:
-    - sean
+    - username: sean
+      sudo: true
 
 storage:
   - disk: /dev/nvme0n1
-    scheme: gpt
     wipe: true
     partitions:
       - mount: /boot
@@ -20,8 +20,18 @@ storage:
         size: 4G
 
       - mount: /
-        fs: ext4
+        fs: btrfs
         size: fill
 
-packages: packages.txt
+
+packages:
+  - pacman: ../pacman.txt
+    aur: ../aur.txt
+
+
+dotfiles:
+  - copy_to: etc/
+    copy_from: ../etc
+  - copy_to: /home/sean/.config/
+    copy_from: .config
   

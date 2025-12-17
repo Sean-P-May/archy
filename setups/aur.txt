@@ -1,0 +1,17 @@
+breezex-cursor-theme
+countdown
+downgrade
+google-chrome
+hyprshot-gui
+jetbrains-toolbox
+ollama-bin
+onedrive-abraunegg
+python-hyprpy
+tilp
+ttf-ms-fonts
+wl-screenrec
+yay
+yay-debug
+youtube-dl
+ytermusic-bin
+zen-browser-bin
