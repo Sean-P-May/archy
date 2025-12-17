@@ -3,6 +3,7 @@ system:
   hostname: surfacebook4
   timezone: America/New_York
   locale: en_US.UTF-8
+  secure_boot: true
   users:
     - username: sean
       sudo: true
