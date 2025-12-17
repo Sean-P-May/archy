@@ -55,6 +55,7 @@ def main():
     print(f"Users: {system.users}")
     print(f"Hostname: {system.hostname}")
     print(f"Users: {system.users}")
+    print(f"Secure Boot enabled: {system.secure_boot}")
     for disk in disks:
         print(" Disk: " + disk.device)
         for partition in disk.partitions:
@@ -84,7 +85,7 @@ def main():
                 run_process_exit_on_fail(f"swapon {partition.dev_path}")
     
 
-    run_process_exit_on_fail("pacstrap -K /mnt base linux linux-firmware linux-headers base-devel")
+    run_process_exit_on_fail("pacstrap -K /mnt base linux linux-firmware linux-headers base-devel sbctl")
 
     run_process_exit_on_fail(["bash", "-lc", "genfstab -U /mnt >> /mnt/etc/fstab"])
 
@@ -96,7 +97,7 @@ def main():
     chroot_process(["/bin/sh", "-c", f'echo "{system.hostname}" > /etc/hostname'])
 
     set_root_password()
-    install_bootloader(disks)
+    install_bootloader(disks, enable_secure_boot=system.secure_boot)
 
     apply_dotfiles(raw.get("dotfiles", []), base_dir)
 
@@ -112,17 +113,6 @@ def main():
             installer.install_aur_file(group.aur)
 
     print("Install complete. Please reboot.")
-
-    setup_users(system)
-
-    package_user = select_package_user(system)
-    installer = PackageInstaller(package_user)
-
-    for group in package_groups:
-        if group.pacman:
-            installer.install_pacman_file(group.pacman)
-        if group.aur:
-            installer.install_aur_file(group.aur)
 
 
 
@@ -165,7 +155,7 @@ def setup_users(system: SystemSettings):
         enable_wheel_sudo()
 
 
-def install_bootloader(disks: list[Disk]):
+def install_bootloader(disks: list[Disk], *, enable_secure_boot: bool = False):
     root_partition = None
     for disk in disks:
         for partition in disk.partitions:
@@ -208,6 +198,50 @@ def install_bootloader(disks: list[Disk]):
     ])
 
     chroot_process(["systemctl", "enable", "NetworkManager.service"])
+
+    if enable_secure_boot:
+        setup_secure_boot()
+
+
+def setup_secure_boot():
+    keys_dir = Path("/mnt/usr/share/secureboot/keys")
+    if not keys_dir.exists():
+        chroot_process(["sbctl", "create-keys"])
+
+    chroot_process(["sbctl", "enroll-keys", "--microsoft"])
+
+    binaries = [
+        "/boot/EFI/systemd/systemd-bootx64.efi",
+        "/boot/EFI/BOOT/BOOTX64.EFI",
+        "/boot/vmlinuz-linux",
+    ]
+
+    for binary in binaries:
+        chroot_process(["sbctl", "sign", "-s", binary])
+
+    configure_secure_boot_hook()
+
+
+def configure_secure_boot_hook():
+    hook_path = Path("/mnt/etc/pacman.d/hooks/90-secure-boot-sign.hook")
+    hook_path.parent.mkdir(parents=True, exist_ok=True)
+
+    hook_contents = """[Trigger]
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Type = Path
+Target = usr/lib/systemd/boot/efi/systemd-bootx64.efi
+Target = boot/EFI/BOOT/BOOTX64.EFI
+Target = boot/vmlinuz-linux
+
+[Action]
+Description = Signing EFI binaries for Secure Boot
+When = PostTransaction
+Exec = /usr/bin/sbctl sign-all
+"""
+
+    hook_path.write_text(hook_contents)
 
 
 def apply_dotfiles(entries: list[dict], base_dir: Path):
