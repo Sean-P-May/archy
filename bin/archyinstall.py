@@ -7,35 +7,26 @@ from lib.picker import pick_setup
 from lib.loader import load_setup_yaml
 from lib.partitioner import partition_disks
 
+
 def main():
-
-    
-
 
     # 1. Pick setup
 
-
-
-
-
-    #Keyboard layout
+    # Keyboard layout
     subprocess.run(["loadkeys", "us"])
 
-    #check_efi
+    # check_efi
     with open("/sys/firmware/efi/fw_platform_size") as f:
-        value = f.read().strip() 
-    
+        value = f.read().strip()
+
     if value != "64":
         print("architecture not supported by this install script.")
         exit()
+
     # 2. Load raw YAML
-    
-    # run_process_exit_on_fail("pacman-key -v archlinux-version-x86_64.iso.sig")
 
-
-
-    project_root = Path(__file__).resolve().parent
-    setups_root = project_root / "setups"
+    repo_root = Path(__file__).resolve().parent.parent
+    setups_root = repo_root / "setups"
 
     setup = pick_setup(setups_root)
     base_dir = setups_root / setup
@@ -53,7 +44,7 @@ def main():
 
     disks = Disk.from_storage(raw["storage"])
     system = SystemSettings.from_config(machine_config)
-    resource_roots = [base_dir, setups_root, project_root]
+    resource_roots = [base_dir, setups_root, repo_root]
 
     package_groups = PackageGroup.from_entries(
         raw.get("packages", []),
@@ -68,16 +59,12 @@ def main():
         print(" Disk: " + disk.device)
         for partition in disk.partitions:
             print(f"  {partition}")
-    
+
     print(f"Package groups: {package_groups}")
-
-
-
 
     if not input("Ready to install? (yes or y): ").lower() in ["yes", "y"]:
         print("Exiting!!!")
         exit()
-
 
     partition_disks(disks, dry_run=False)
 
@@ -107,7 +94,6 @@ def main():
 
     for swap in swaps:
         run_process_exit_on_fail(["swapon", swap.dev_path])
-    
 
     run_process_exit_on_fail(
         "pacstrap -K /mnt base linux linux-firmware linux-headers base-devel sbctl networkmanager"
@@ -139,17 +125,6 @@ def main():
             installer.install_aur_file(group.aur)
 
     print("Install complete. Please reboot.")
-
-
-
-
- 
-
-    
-
-
-
-
 
 
 def vefity_internet():
@@ -312,6 +287,7 @@ def apply_dotfiles(entries: list[dict], base_dirs: list[Path]):
             shutil.copytree(source, destination, dirs_exist_ok=True)
         else:
             shutil.copy2(source, destination)
+
 
 if __name__ == "__main__":
     main()
