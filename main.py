@@ -73,16 +73,32 @@ def main():
 
     partition_disks(disks, dry_run=False)
 
+    roots = []
+    boots = []
+    swaps = []
+
     for disk in disks:
         for partition in disk.partitions:
             if partition.is_root():
-                run_process_exit_on_fail(f"mount {partition.dev_path} /mnt")
-
+                roots.append(partition)
             if partition.is_boot():
-                run_process_exit_on_fail(f"mount {partition.dev_path} /mnt/boot")
-
+                boots.append(partition)
             if partition.is_swap():
-                run_process_exit_on_fail(f"swapon {partition.dev_path}")
+                swaps.append(partition)
+
+    if not roots:
+        raise RuntimeError("No root partition found to mount")
+
+    root = roots[0]
+    run_process_exit_on_fail(["mount", root.dev_path, "/mnt"])
+
+    if boots:
+        run_process_exit_on_fail(["mkdir", "-p", "/mnt/boot"])
+        for boot in boots:
+            run_process_exit_on_fail(["mount", boot.dev_path, "/mnt/boot"])
+
+    for swap in swaps:
+        run_process_exit_on_fail(["swapon", swap.dev_path])
     
 
     run_process_exit_on_fail("pacstrap -K /mnt base linux linux-firmware linux-headers base-devel sbctl")
