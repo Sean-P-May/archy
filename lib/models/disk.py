@@ -58,7 +58,19 @@ class Disk:
         if used > disk_bytes: 
             raise ValueError("Partition sizes exceed disk size") 
 
-        plan = fixed[:] 
-        if fill: 
-            plan.append((fill, disk_bytes - used)) 
+        plan = fixed[:]
+        if fill:
+            remaining = disk_bytes - used
+            if remaining <= 0:
+                raise ValueError("No space left for 'fill' partition")
+
+            # Let sgdisk allocate the remainder of the disk for the fill
+            # partition by leaving its size as ``None``. Calculating an exact
+            # byte size here can overshoot the last usable sector because
+            # sgdisk aligns partition starts and reserves space for GPT
+            # metadata, which leads to failures like exit code 4 when the end
+            # LBA is past the disk boundary. Keeping ``None`` preserves the
+            # ``0`` placeholder in the sgdisk command so it uses the disk's
+            # reported last-usable sector instead of our calculation.
+            plan.append((fill, None))
         return plan
