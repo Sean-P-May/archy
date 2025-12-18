@@ -101,7 +101,9 @@ def main():
         run_process_exit_on_fail(["swapon", swap.dev_path])
     
 
-    run_process_exit_on_fail("pacstrap -K /mnt base linux linux-firmware linux-headers base-devel sbctl")
+    run_process_exit_on_fail(
+        "pacstrap -K /mnt base linux linux-firmware linux-headers base-devel sbctl networkmanager"
+    )
 
     run_process_exit_on_fail(["bash", "-lc", "genfstab -U /mnt >> /mnt/etc/fstab"])
 
