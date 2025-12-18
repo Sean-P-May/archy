@@ -1,14 +1,10 @@
 from dataclasses import dataclass
 from .partition import Partition
 
-VALID_SCHEMES = {"gpt", "mbr"}
-
 
 @dataclass
 class Disk:
     device: str
-
-    scheme: str
     wipe: bool
     partitions: list[Partition]
 
@@ -16,7 +12,6 @@ class Disk:
     def from_config(cls, config: dict) -> "Disk":
         return cls(
             device=config["disk"],
-            scheme=config["scheme"],
             wipe=config["wipe"],
             partitions=[
                 Partition.from_config(part, config["disk"], index + 1)
@@ -31,9 +26,6 @@ class Disk:
     def __post_init__(self):
         if not self.device.startswith("/dev/"):
             raise ValueError(f"Invalid disk device: {self.device}")
-
-        if self.scheme not in VALID_SCHEMES:
-            raise ValueError(f"Invalid partition scheme: {self.scheme}")
 
         # Allow disks without root — only check for duplicates inside THIS disk
         roots = [p for p in self.partitions if p.is_root()]
