@@ -6,7 +6,7 @@ Archy is an interactive Arch Linux installer script that provisions disks, insta
 
 - `main.py` – entrypoint that guides you through selecting a setup, partitions disks, runs `pacstrap`, and installs packages inside `/mnt`.
 - `lib/` – helpers for loading setups, validating models, partition planning, and package installation.
-- `setups/` – per-machine configuration directories. Each setup must include a `setup.yaml` file and any referenced package lists or dotfiles.
+- `setups/` – per-machine configuration directories. Each setup must include a `setup.yaml` file. Package lists and shared config files can live either beside the setup directory or in the repository root for reuse across setups.
 
 ## Prerequisites
 
@@ -19,8 +19,7 @@ Archy is an interactive Arch Linux installer script that provisions disks, insta
 Create a directory under `setups/` (for example, `setups/my-laptop`) containing:
 
 - `setup.yaml` – describes system settings, disks, package lists, and dotfiles.
-- Optional package list files referenced from `setup.yaml` (e.g., `pacman.txt`, `aur.txt`).
-- Optional dotfiles or configuration folders to copy into the target system.
+- Optional dotfiles or configuration folders to copy into the target system. Package list files and common config can also live one level above `setups/` so multiple setups can share them.
 
 Example `setup.yaml`:
 
@@ -59,8 +58,8 @@ Key fields:
 
 - `system` – hostname, timezone, locale, and users. The first sudo-capable user is used for AUR builds.
 - `storage` – disks and partitions. Each partition specifies a mount (`/`, `/boot`, or `swap`), filesystem (`ext4`, `btrfs`, `xfs`, `vfat`), and size (e.g., `512M`, `4G`, or `fill` for the remainder).
-- `packages` – one or more groups, each pointing to optional `pacman` and `aur` package list files.
-- `dotfiles` – entries that copy files or directories into the target filesystem (paths are resolved relative to the setup directory unless absolute).
+- `packages` – one or more groups, each pointing to optional `pacman` and `aur` package list files. Relative paths are resolved first against the setup directory, then against `setups/`, and finally against the repository root so shared lists can live alongside the `setups/` directory.
+- `dotfiles` – entries that copy files or directories into the target filesystem (paths are resolved relative to the setup directory, then `setups/`, then the repository root unless absolute).
 
 ## Running the installer
 
