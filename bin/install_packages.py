@@ -6,7 +6,11 @@ import os
 import pwd
 import sys
 
-from archyinstall import select_package_user, vefity_internet
+repo_root = Path(__file__).resolve().parent.parent
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
+
+from lib.install_helpers import select_package_user, vefity_internet
 from lib.loader import load_setup_yaml
 from lib.models import PackageGroup, PackageInstaller, SystemSettings
 from lib.picker import pick_setup
@@ -30,7 +34,6 @@ def main():
     if not vefity_internet():
         sys.exit("No Internet!")
 
-    repo_root = Path(__file__).resolve().parent.parent
     setups_root = repo_root / "setups"
     package_root = repo_root / "packages"
 
