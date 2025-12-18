@@ -1,4 +1,3 @@
-from os import error
 import subprocess
 from typing import List
 
@@ -162,22 +161,27 @@ def partition_disks(disks: List[Disk], dry_run=True):
 
     if not dry_run:
         for action in total_actions:
+            print(f"Running: {' '.join(action['cmd'])}")
             try:
-                command = subprocess.run(
+                result = subprocess.run(
                     action["cmd"],
                     capture_output=True,
                     check=True,
+                    text=True,
                 )
-                if command.stderr:
-                    exit()
-
-            except subprocess.CalledProcessError:
-                print(error)
-                exit()
-
-            finally:
-                print(error)
-                exit()
+            except subprocess.CalledProcessError as exc:
+                print(f"Partitioning step failed: {action['desc']}")
+                print(f"Command: {' '.join(action['cmd'])}")
+                if exc.stdout:
+                    print(f"stdout:\n{exc.stdout.strip()}")
+                if exc.stderr:
+                    print(f"stderr:\n{exc.stderr.strip()}")
+                raise
+            else:
+                if result.stdout:
+                    print(result.stdout.strip())
+                if result.stderr:
+                    print(result.stderr.strip())
             
             
 
@@ -191,7 +195,6 @@ def partition_disks(disks: List[Disk], dry_run=True):
 
 
         
-
 
 
 
