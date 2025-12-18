@@ -2,10 +2,9 @@
 
 REQUIRED_TOP_LEVEL_KEYS = {"machine", "storage", "packages"}
 REQUIRED_MACHINE_KEYS = {"hostname", "timezone", "locale", "users"}
-REQUIRED_DISK_KEYS = {"disk", "scheme", "wipe", "partitions"}
+REQUIRED_DISK_KEYS = {"disk", "wipe", "partitions"}
 REQUIRED_PARTITION_KEYS = {"mount", "size"}
 
-VALID_SCHEMES = {"gpt", "mbr"}
 VALID_MOUNTS = {"/", "/boot", "swap"}
 
 
@@ -43,9 +42,6 @@ def validate_setup(data):
         if missing:
             raise ValueError(f"Disk entry missing keys: {missing}")
 
-        if disk["scheme"] not in VALID_SCHEMES:
-            raise ValueError(f"Invalid partition scheme: {disk['scheme']}")
-
         partitions = disk["partitions"]
         if not isinstance(partitions, list) or not partitions:
             raise ValueError("Each disk must have partitions")
@@ -80,4 +76,3 @@ def validate_setup(data):
     packages = data["packages"]
     if not isinstance(packages, str):
         raise ValueError("'packages' must be a filename (string)")
-

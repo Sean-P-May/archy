@@ -11,7 +11,6 @@ def build_partition_actions(disk: Disk, dry_run=False):
     """
 
     device = disk.device
-    scheme = disk.scheme
     wipe = disk.wipe
     partitions = disk.partitions
 
@@ -195,6 +194,5 @@ def partition_disks(disks: List[Disk], dry_run=True):
 
 
         
-
 
 
