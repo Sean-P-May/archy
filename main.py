@@ -34,14 +34,17 @@ def main():
 
 
 
-    setup = pick_setup()
-    base_dir = Path("setups") / setup
+    project_root = Path(__file__).resolve().parent
+    setups_root = project_root / "setups"
+
+    setup = pick_setup(setups_root)
+    base_dir = setups_root / setup
     print(f"Selected setup: {setup}")
     if not vefity_internet():
         print("No Internet!")
         exit()
 
-    raw = load_setup_yaml(setup)
+    raw = load_setup_yaml(setup, setups_root=setups_root)
 
     # 3. Normalize → validated models
     machine_config = raw.get("machine") or raw.get("system")
@@ -50,7 +53,12 @@ def main():
 
     disks = Disk.from_storage(raw["storage"])
     system = SystemSettings.from_config(machine_config)
-    package_groups = PackageGroup.from_entries(raw.get("packages", []), base_dir=base_dir)
+    resource_roots = [base_dir, setups_root, project_root]
+
+    package_groups = PackageGroup.from_entries(
+        raw.get("packages", []),
+        base_dirs=resource_roots,
+    )
 
     print(f"Users: {system.users}")
     print(f"Hostname: {system.hostname}")
@@ -117,7 +125,7 @@ def main():
     set_root_password()
     install_bootloader(disks, enable_secure_boot=system.secure_boot)
 
-    apply_dotfiles(raw.get("dotfiles", []), base_dir)
+    apply_dotfiles(raw.get("dotfiles", []), resource_roots)
 
     setup_users(system)
 
@@ -278,11 +286,17 @@ Exec = /usr/bin/sbctl sign-all
     hook_path.write_text(hook_contents)
 
 
-def apply_dotfiles(entries: list[dict], base_dir: Path):
+def apply_dotfiles(entries: list[dict], base_dirs: list[Path]):
     for entry in entries:
         source = Path(entry["copy_from"])
         if not source.is_absolute():
-            source = (base_dir / source).resolve()
+            resolved_source = None
+            for base_dir in base_dirs:
+                candidate = (base_dir / source).resolve()
+                if candidate.exists():
+                    resolved_source = candidate
+                    break
+            source = resolved_source or (base_dirs[0] / source).resolve()
 
         if not source.exists():
             raise FileNotFoundError(source)

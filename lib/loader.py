@@ -1,12 +1,12 @@
 
-import os
 import yaml
+from pathlib import Path
 
 
-def load_setup_yaml(setup_dir: str) -> dict:
-    setup_path = os.path.join("setups", setup_dir, "setup.yaml")
+def load_setup_yaml(setup_dir: str, *, setups_root: str | Path = "setups") -> dict:
+    setup_path = Path(setups_root) / setup_dir / "setup.yaml"
 
-    if not os.path.exists(setup_path):
+    if not setup_path.exists():
         raise FileNotFoundError(f"Setup file not found: {setup_path}")
 
     with open(setup_path, "r") as f:
@@ -19,5 +19,3 @@ def load_setup_yaml(setup_dir: str) -> dict:
         raise ValueError("Setup file must be a YAML mapping")
 
     return data
-
-

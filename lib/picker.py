@@ -1,11 +1,13 @@
 import os
+from os import fspath
+
 
 def pick_setup(setups_dir="setups"):
 
     try:
         setups = sorted(
-            d for d in os.listdir(setups_dir)
-            if os.path.isdir(os.path.join(setups_dir, d))
+            d for d in os.listdir(fspath(setups_dir))
+            if os.path.isdir(os.path.join(fspath(setups_dir), d))
         )
     except FileNotFoundError:
         raise RuntimeError(f"Setup directory '{setups_dir}' does not exist")
@@ -33,4 +35,3 @@ def pick_setup(setups_dir="setups"):
             return setups[index]
 
         print("❌ Number out of range.")
-
