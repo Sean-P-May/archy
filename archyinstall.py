@@ -112,9 +112,9 @@ def main():
     set_root_password()
     install_bootloader(disks, enable_secure_boot=system.secure_boot)
 
-    apply_dotfiles(raw.get("dotfiles", []), resource_roots)
-
     setup_users(system)
+
+    apply_dotfiles(raw.get("dotfiles", []), resource_roots, users=system.users)
 
     package_user = select_package_user(system)
     installer = PackageInstaller(package_user)
@@ -274,7 +274,9 @@ Exec = /usr/bin/sbctl sign-all
     hook_path.write_text(hook_contents)
 
 
-def apply_dotfiles(entries: list[dict], base_dirs: list[Path]):
+def apply_dotfiles(entries: list[dict], base_dirs: list[Path], users=None):
+    user_lookup = {user.username for user in (users or [])}
+
     for entry in entries:
         source = Path(entry["copy_from"])
         if not source.is_absolute():
@@ -303,6 +305,18 @@ def apply_dotfiles(entries: list[dict], base_dirs: list[Path]):
             shutil.copy(source, destination, follow_symlinks=False)
         else:
             shutil.copy2(source, destination)
+
+        chroot_destination = Path("/") / destination.relative_to("/mnt")
+        if chroot_destination.parts[:2] == ("/", "home") and len(chroot_destination.parts) >= 3:
+            owner = chroot_destination.parts[2]
+            if owner in user_lookup:
+                chroot_process([
+                    "chown",
+                    "-R",
+                    "--no-dereference",
+                    f"{owner}:{owner}",
+                    str(chroot_destination),
+                ])
 
 
 if __name__ == "__main__":
