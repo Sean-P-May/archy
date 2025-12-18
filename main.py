@@ -222,6 +222,8 @@ def install_bootloader(disks: list[Disk], *, enable_secure_boot: bool = False):
 
 
 def setup_secure_boot():
+    clear_immutable_efivars()
+
     keys_dir = Path("/mnt/usr/share/secureboot/keys")
     if not keys_dir.exists():
         chroot_process(["sbctl", "create-keys"])
@@ -238,6 +240,20 @@ def setup_secure_boot():
         chroot_process(["sbctl", "sign", "-s", binary])
 
     configure_secure_boot_hook()
+
+
+def clear_immutable_efivars():
+    efivarfs = Path("/sys/firmware/efi/efivars")
+    if not efivarfs.exists():
+        print("efivarfs not mounted; skipping immutable attribute check.")
+        return
+
+    targets = []
+    for prefix in ("PK-", "KEK-", "db-"):
+        targets.extend(efivarfs.glob(f"{prefix}*"))
+
+    for target in targets:
+        run_process_exit_on_fail(["chattr", "-i", str(target)])
 
 
 def configure_secure_boot_hook():
