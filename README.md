@@ -7,7 +7,8 @@ Archy is an interactive Arch Linux installer script that provisions disks, insta
 - `archyinstall.py` – entrypoint that guides you through selecting a setup, partitions disks, runs `pacstrap`, and installs packages inside `/mnt`.
 - `bin/copypackages.py` – utility that saves the current system's explicit pacman (native) and AUR packages into `packages/pacman.txt` and `packages/aur.txt`.
 - `lib/` – helpers for loading setups, validating models, partition planning, and package installation.
-- `setups/` – per-machine configuration directories. Each setup must include a `setup.yaml` file. Package lists and shared config files can live either beside the setup directory or in the repository root for reuse across setups.
+- `packages/` – shared pacman and AUR package lists referenced by setups.
+- `setups/` – per-machine configuration directories. Each setup must include a `setup.yaml` file. Package lists live under the repo-root `packages/` directory.
 
 ## Prerequisites
 
@@ -20,7 +21,7 @@ Archy is an interactive Arch Linux installer script that provisions disks, insta
 Create a directory under `setups/` (for example, `setups/my-laptop`) containing:
 
 - `setup.yaml` – describes system settings, disks, package lists, and dotfiles.
-- Optional dotfiles or configuration folders to copy into the target system. Package list files and common config can also live one level above `setups/` so multiple setups can share them.
+- Optional dotfiles or configuration folders to copy into the target system. Package list files should live under the repo-root `packages/` directory so multiple setups can share them.
 
 Example `setup.yaml`:
 
@@ -47,8 +48,8 @@ storage:
         size: fill
 
 packages:
-  - pacman: ../pacman.txt
-    aur: ../aur.txt
+  - pacman: pacman.txt
+    aur: aur.txt
 
 dotfiles:
   - copy_to: /home/sean/.config/
@@ -59,7 +60,7 @@ Key fields:
 
 - `system` – hostname, timezone, locale, and users. The first sudo-capable user is used for AUR builds.
 - `storage` – disks and partitions. Each partition specifies a mount (`/`, `/boot`, or `swap`), filesystem (`ext4`, `btrfs`, `xfs`, `vfat`), and size (e.g., `512M`, `4G`, or `fill` for the remainder).
-- `packages` – one or more groups, each pointing to optional `pacman` and `aur` package list files. Relative paths are resolved first against the setup directory, then against `setups/`, and finally against the repository root so shared lists can live alongside the `setups/` directory.
+- `packages` – one or more groups, each pointing to optional `pacman` and `aur` package list files. Relative paths are resolved against the repo-root `packages/` directory (for example, `pacman.txt`, `aur.txt`, or `desktop/pacman.txt`).
 - `dotfiles` – entries that copy files or directories into the target filesystem (paths are resolved relative to the setup directory, then `setups/`, then the repository root unless absolute).
 
 ## Running the installer
