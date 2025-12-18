@@ -78,18 +78,27 @@ class PackageGroup:
         return groups
 
 class PackageInstaller:
-    def __init__(self, username: str):
+    def __init__(self, username: str, root_path: Path | str = "/mnt"):
         """
         username is required for AUR installs
+        root_path allows running installs either inside /mnt (default) or directly
+        on the host system by setting it to "/".
         """
         self.username = username
+        self.root_path = Path(root_path)
 
     # -------------------------
     # Helpers
     # -------------------------
 
+    def _chroot_prefix(self) -> list[str]:
+        if self.root_path == Path("/"):
+            return []
+
+        return ["arch-chroot", str(self.root_path)]
+
     def _run_in_chroot(self, args: list[str]) -> bool:
-        cmd = ["arch-chroot", "/mnt", *args]
+        cmd = [*self._chroot_prefix(), *args]
         cp = subprocess.run(
             cmd,
             text=True,
@@ -108,16 +117,17 @@ class PackageInstaller:
         return True
 
     def _run_in_chroot_as_user(self, cmd: str) -> bool:
-        chroot_cmd = [
-            "arch-chroot",
-            "/mnt",
+        chroot_cmd = [*self._chroot_prefix()]
+
+        chroot_cmd.extend([
             "sudo",
             "-u",
             self.username,
             "bash",
             "-lc",
             cmd,
-        ]
+        ])
+
         cp = subprocess.run(
             chroot_cmd,
             text=True,
