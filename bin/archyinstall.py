@@ -1,40 +1,31 @@
+#!/usr/bin/env python3
 from pathlib import Path
 import shutil
 import subprocess
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 from lib.process_helpers import *
 from lib.models import Disk, PackageGroup, PackageInstaller, SystemSettings
 from lib.picker import pick_setup
 from lib.loader import load_setup_yaml
 from lib.partitioner import partition_disks
 
+
 def main():
-
-    
-
-
-    # 1. Pick setup
-
-
-
-
-
-    #Keyboard layout
     subprocess.run(["loadkeys", "us"])
 
-    #check_efi
     with open("/sys/firmware/efi/fw_platform_size") as f:
-        value = f.read().strip() 
-    
+        value = f.read().strip()
+
     if value != "64":
         print("architecture not supported by this install script.")
         exit()
-    # 2. Load raw YAML
-    
-    # run_process_exit_on_fail("pacman-key -v archlinux-version-x86_64.iso.sig")
 
-
-
-    project_root = Path(__file__).resolve().parent
+    project_root = PROJECT_ROOT
     setups_root = project_root / "setups"
 
     setup = pick_setup(setups_root)
@@ -46,7 +37,6 @@ def main():
 
     raw = load_setup_yaml(setup, setups_root=setups_root)
 
-    # 3. Normalize → validated models
     machine_config = raw.get("machine") or raw.get("system")
     if not machine_config:
         raise KeyError("Setup file missing 'system' configuration")
@@ -68,16 +58,12 @@ def main():
         print(" Disk: " + disk.device)
         for partition in disk.partitions:
             print(f"  {partition}")
-    
+
     print(f"Package groups: {package_groups}")
-
-
-
 
     if not input("Ready to install? (yes or y): ").lower() in ["yes", "y"]:
         print("Exiting!!!")
         exit()
-
 
     partition_disks(disks, dry_run=False)
 
@@ -107,7 +93,6 @@ def main():
 
     for swap in swaps:
         run_process_exit_on_fail(["swapon", swap.dev_path])
-    
 
     run_process_exit_on_fail(
         "pacstrap -K /mnt base linux linux-firmware linux-headers base-devel sbctl networkmanager"
@@ -119,8 +104,8 @@ def main():
     chroot_process(f"ln -sf /usr/share/zoneinfo/{system.timezone} /etc/localtime")
     chroot_process("hwclock --systohc")
     chroot_process("locale-gen")
-    chroot_process(["/bin/sh", "-c", f'echo "LANG={system.locale}" > /etc/locale.conf'])
-    chroot_process(["/bin/sh", "-c", f'echo "{system.hostname}" > /etc/hostname'])
+    chroot_process(["/bin/sh", "-c", f'echo \"LANG={system.locale}\" > /etc/locale.conf'])
+    chroot_process(["/bin/sh", "-c", f'echo \"{system.hostname}\" > /etc/hostname'])
 
     set_root_password()
     install_bootloader(disks, enable_secure_boot=system.secure_boot)
@@ -139,17 +124,6 @@ def main():
             installer.install_aur_file(group.aur)
 
     print("Install complete. Please reboot.")
-
-
-
-
- 
-
-    
-
-
-
-
 
 
 def vefity_internet():
@@ -312,6 +286,7 @@ def apply_dotfiles(entries: list[dict], base_dirs: list[Path]):
             shutil.copytree(source, destination, dirs_exist_ok=True)
         else:
             shutil.copy2(source, destination)
+
 
 if __name__ == "__main__":
     main()
