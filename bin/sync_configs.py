@@ -5,7 +5,11 @@ from pathlib import Path
 import os
 import sys
 
-from archyinstall import apply_dotfiles
+repo_root = Path(__file__).resolve().parent.parent
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
+
+from lib.install_helpers import apply_dotfiles
 from lib.loader import load_setup_yaml
 from lib.models import SystemSettings
 from lib.picker import pick_setup
@@ -19,7 +23,6 @@ def ensure_root():
 def main():
     ensure_root()
 
-    repo_root = Path(__file__).resolve().parent.parent
     setups_root = repo_root / "setups"
 
     setup = pick_setup(setups_root)
