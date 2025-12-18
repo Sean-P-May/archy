@@ -121,19 +121,24 @@ def main():
 
     pacman_failures: list[str] = []
     aur_failures: list[str] = []
+    flatpak_failures: list[str] = []
 
     for group in package_groups:
         if group.pacman:
             pacman_failures.extend(installer.install_pacman_file(group.pacman))
         if group.aur:
             aur_failures.extend(installer.install_aur_file(group.aur))
+        if group.flatpak:
+            flatpak_failures.extend(installer.install_flatpak_file(group.flatpak))
 
-    if pacman_failures or aur_failures:
+    if pacman_failures or aur_failures or flatpak_failures:
         print("Package installation completed with some failures:")
         if pacman_failures:
             print(f"  Pacman: {', '.join(pacman_failures)}")
         if aur_failures:
             print(f"  AUR: {', '.join(aur_failures)}")
+        if flatpak_failures:
+            print(f"  Flatpak: {', '.join(flatpak_failures)}")
     else:
         print("All package installations completed successfully.")
 

@@ -13,6 +13,7 @@ from typing import Iterable, Optional
 class PackageGroup:
     pacman: Optional[Path] = None
     aur: Optional[Path] = None
+    flatpak: Optional[Path] = None
 
     @classmethod
     def from_entries(
@@ -37,9 +38,10 @@ class PackageGroup:
         for entry in entries:
             pacman = entry.get("pacman")
             aur = entry.get("aur")
+            flatpak = entry.get("flatpak")
 
-            if not pacman and not aur:
-                raise ValueError("Package group must contain pacman and/or aur")
+            if not pacman and not aur and not flatpak:
+                raise ValueError("Package group must contain pacman, aur, and/or flatpak")
 
             def resolve(path_value: str | None) -> Optional[Path]:
                 if not path_value:
@@ -59,6 +61,7 @@ class PackageGroup:
             group = cls(
                 pacman=resolve(pacman),
                 aur=resolve(aur),
+                flatpak=resolve(flatpak),
             )
 
             if group.pacman and not group.pacman.exists():
@@ -66,6 +69,9 @@ class PackageGroup:
 
             if group.aur and not group.aur.exists():
                 raise FileNotFoundError(group.aur)
+
+            if group.flatpak and not group.flatpak.exists():
+                raise FileNotFoundError(group.flatpak)
 
             groups.append(group)
 
@@ -202,3 +208,40 @@ class PackageInstaller:
     def install_aur_file(self, path: Path) -> list[str]:
         packages = self._read_package_file(path)
         return self.install_aur_packages(packages)
+
+    def install_flatpak_packages(self, packages: list[str]) -> list[str]:
+        if not packages:
+            return []
+
+        failures: list[str] = []
+
+        if not self._run_in_chroot([
+            "flatpak",
+            "remote-add",
+            "--if-not-exists",
+            "flathub",
+            "https://flathub.org/repo/flathub.flatpakrepo",
+        ]):
+            print("Failed to configure flathub; skipping Flatpak installs", file=sys.stderr)
+            return packages
+
+        for pkg in packages:
+            print(f"Installing Flatpak app: {pkg}")
+            ok = self._run_in_chroot([
+                "flatpak",
+                "install",
+                "-y",
+                "flathub",
+                pkg,
+            ])
+            if not ok:
+                failures.append(pkg)
+
+        if failures:
+            print(f"Failed Flatpak apps: {', '.join(failures)}", file=sys.stderr)
+
+        return failures
+
+    def install_flatpak_file(self, path: Path) -> list[str]:
+        packages = self._read_package_file(path)
+        return self.install_flatpak_packages(packages)
