@@ -17,14 +17,21 @@ def run_process_exit_on_fail(
     if isinstance(process, str):
         process = process.split(" ")
 
+    print(f"Running command: {' '.join(process)}")
     cp = subprocess.run(
         process,
         input=input,
-        text=True if input is not None else False,
+        text=True,
+        capture_output=True,
     )
 
+    if cp.stdout:
+        print(cp.stdout, end="")
+    if cp.stderr:
+        print(cp.stderr, file=sys.stderr, end="")
+
     if cp.returncode != 0:
-        print(f"Error running: {' '.join(process)}", file=sys.stderr)
+        print(f"Error running: {' '.join(process)} (exit code {cp.returncode})", file=sys.stderr)
         sys.exit(1)
 
 
