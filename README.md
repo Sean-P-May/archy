@@ -6,6 +6,8 @@ Archy is an interactive Arch Linux installer script that provisions disks, insta
 
 - `archyinstall.py` – entrypoint that guides you through selecting a setup, partitions disks, runs `pacstrap`, and installs packages inside `/mnt`.
 - `bin/copypackages.py` – utility that saves the current system's explicit pacman (native), AUR, and Flatpak packages into `packages/pacman.txt`, `packages/aur.txt`, and `packages/flatpak.txt`.
+- `bin/install_packages.py` – installs pacman, AUR, and Flatpak package groups onto an already installed system using a selected setup.
+- `bin/sync_configs.py` – syncs dotfiles/config folders from a setup onto an already installed system without running the full installer.
 - `lib/` – helpers for loading setups, validating models, partition planning, and package installation.
 - `packages/` – shared pacman, AUR, and Flatpak package lists referenced by setups.
 - `setups/` – per-machine configuration directories. Each setup must include a `setup.yaml` file. Package lists live under the repo-root `packages/` directory and shared dotfiles/config folders live at the repository root (for example, `configs/`).

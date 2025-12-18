@@ -279,8 +279,21 @@ Exec = /usr/bin/sbctl sign-all
     hook_path.write_text(hook_contents)
 
 
-def apply_dotfiles(entries: list[dict], base_dirs: list[Path], users=None):
+def apply_dotfiles(
+    entries: list[dict],
+    base_dirs: list[Path],
+    users=None,
+    *,
+    root_path: Path | str = "/mnt",
+):
     user_lookup = {user.username for user in (users or [])}
+    root_path = Path(root_path)
+
+    def run_in_target(process: list[str] | str):
+        if root_path == Path("/"):
+            run_process_exit_on_fail(process)
+        else:
+            chroot_process(process)
 
     for entry in entries:
         source = Path(entry["copy_from"])
@@ -301,7 +314,7 @@ def apply_dotfiles(entries: list[dict], base_dirs: list[Path], users=None):
         if not destination.is_absolute():
             destination = Path("/") / destination
 
-        destination = Path("/mnt") / destination.relative_to("/")
+        destination = root_path / destination.relative_to("/")
         destination.parent.mkdir(parents=True, exist_ok=True)
 
         if source.is_dir():
@@ -311,11 +324,11 @@ def apply_dotfiles(entries: list[dict], base_dirs: list[Path], users=None):
         else:
             shutil.copy2(source, destination)
 
-        chroot_destination = Path("/") / destination.relative_to("/mnt")
+        chroot_destination = Path("/") / destination.relative_to(root_path)
         if chroot_destination.parts[:2] == ("/", "home") and len(chroot_destination.parts) >= 3:
             owner = chroot_destination.parts[2]
             if owner in user_lookup:
-                chroot_process([
+                run_in_target([
                     "chown",
                     "-R",
                     "--no-dereference",
