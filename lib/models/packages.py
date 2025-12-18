@@ -4,7 +4,7 @@ from lib.process_helpers import *
 
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Iterable, Optional
 
 
 @dataclass
@@ -13,8 +13,23 @@ class PackageGroup:
     aur: Optional[Path] = None
 
     @classmethod
-    def from_entries(cls, entries: list[dict], *, base_dir: Path | str | None = None) -> list["PackageGroup"]:
-        base_path = Path(base_dir) if base_dir is not None else Path.cwd()
+    def from_entries(
+        cls,
+        entries: list[dict],
+        *,
+        base_dir: Path | str | None = None,
+        base_dirs: Iterable[Path | str] | None = None,
+    ) -> list["PackageGroup"]:
+        search_paths = []
+
+        if base_dirs:
+            search_paths.extend(Path(p) for p in base_dirs)
+        elif base_dir is not None:
+            search_paths.append(Path(base_dir))
+        else:
+            search_paths.append(Path.cwd())
+
+        search_paths = [path.resolve() for path in search_paths]
         groups: list[PackageGroup] = []
 
         for entry in entries:
@@ -27,10 +42,17 @@ class PackageGroup:
             def resolve(path_value: str | None) -> Optional[Path]:
                 if not path_value:
                     return None
+
                 candidate = Path(path_value)
-                if not candidate.is_absolute():
-                    candidate = base_path / candidate
-                return candidate.resolve()
+                if candidate.is_absolute():
+                    return candidate.resolve()
+
+                for base_path in search_paths:
+                    potential = (base_path / candidate).resolve()
+                    if potential.exists():
+                        return potential
+
+                return (search_paths[0] / candidate).resolve()
 
             group = cls(
                 pacman=resolve(pacman),
