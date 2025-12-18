@@ -1,7 +1,53 @@
+import json
 import subprocess
+from pathlib import Path
 from typing import List
 
 from .models.disk import Disk
+
+
+def _walk_block_children(block: dict):
+    yield block
+    for child in block.get("children", []):
+        yield from _walk_block_children(child)
+
+
+def unmount_disk_partitions(device: str):
+    """
+    Unmount and swapoff any partitions belonging to ``device`` so that new
+    partition tables and filesystems can be created safely.
+    """
+    disk_name = Path(device).name
+    try:
+        result = subprocess.run(
+            ["lsblk", "-J", "-o", "NAME,MOUNTPOINT,TYPE"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError(f"Failed to query block devices: {exc.stderr}") from exc
+
+    info = json.loads(result.stdout)
+    target = next(
+        (dev for dev in info.get("blockdevices", []) if dev.get("name") == disk_name),
+        None,
+    )
+    if not target:
+        return
+
+    for block in _walk_block_children(target):
+        mountpoint = block.get("mountpoint")
+        if not mountpoint:
+            continue
+
+        part_dev = f"/dev/{block['name']}"
+        if mountpoint == "[SWAP]":
+            subprocess.run(["swapoff", part_dev], check=True)
+            print(f"Disabled swap on {part_dev}")
+        else:
+            subprocess.run(["umount", part_dev], check=True)
+            print(f"Unmounted {part_dev} from {mountpoint}")
 
 
 def build_partition_actions(disk: Disk, dry_run=False):
@@ -87,6 +133,12 @@ def build_partition_actions(disk: Disk, dry_run=False):
 
         number += 1
 
+    # Ensure the kernel re-reads the partition table before creating filesystems
+    actions.append({
+        "desc": "reload partition table",
+        "cmd": ["partprobe", device]
+    })
+
     # ---- Step 4: build filesystem creation commands ----
 
     number = 1
@@ -142,6 +194,7 @@ def partition_disks(disks: List[Disk], dry_run=True):
     total_actions = []
 
     for disk in disks:
+        unmount_disk_partitions(disk.device)
         actions = build_partition_actions(disk)
 
         print("\nDisk: " + disk.device)
@@ -194,5 +247,4 @@ def partition_disks(disks: List[Disk], dry_run=True):
 
 
         
-
 
