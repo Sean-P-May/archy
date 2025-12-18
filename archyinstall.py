@@ -119,11 +119,23 @@ def main():
     package_user = select_package_user(system)
     installer = PackageInstaller(package_user)
 
+    pacman_failures: list[str] = []
+    aur_failures: list[str] = []
+
     for group in package_groups:
         if group.pacman:
-            installer.install_pacman_file(group.pacman)
+            pacman_failures.extend(installer.install_pacman_file(group.pacman))
         if group.aur:
-            installer.install_aur_file(group.aur)
+            aur_failures.extend(installer.install_aur_file(group.aur))
+
+    if pacman_failures or aur_failures:
+        print("Package installation completed with some failures:")
+        if pacman_failures:
+            print(f"  Pacman: {', '.join(pacman_failures)}")
+        if aur_failures:
+            print(f"  AUR: {', '.join(aur_failures)}")
+    else:
+        print("All package installations completed successfully.")
 
     print("Install complete. Please reboot.")
 

@@ -1,5 +1,7 @@
 
 from pathlib import Path
+import subprocess
+import sys
 from lib.process_helpers import *
 
 
@@ -80,6 +82,53 @@ class PackageInstaller:
     # Helpers
     # -------------------------
 
+    def _run_in_chroot(self, args: list[str]) -> bool:
+        cmd = ["arch-chroot", "/mnt", *args]
+        cp = subprocess.run(
+            cmd,
+            text=True,
+            capture_output=True,
+        )
+
+        if cp.stdout:
+            print(cp.stdout, end="")
+        if cp.stderr:
+            print(cp.stderr, file=sys.stderr, end="")
+
+        if cp.returncode != 0:
+            print(f"Error running: {' '.join(cmd)} (exit code {cp.returncode})", file=sys.stderr)
+            return False
+
+        return True
+
+    def _run_in_chroot_as_user(self, cmd: str) -> bool:
+        chroot_cmd = [
+            "arch-chroot",
+            "/mnt",
+            "sudo",
+            "-u",
+            self.username,
+            "bash",
+            "-lc",
+            cmd,
+        ]
+        cp = subprocess.run(
+            chroot_cmd,
+            text=True,
+            capture_output=True,
+        )
+
+        if cp.stdout:
+            print(cp.stdout, end="")
+        if cp.stderr:
+            print(cp.stderr, file=sys.stderr, end="")
+
+        if cp.returncode != 0:
+            print(f"Error running: {' '.join(chroot_cmd)} (exit code {cp.returncode})", file=sys.stderr)
+            return False
+
+        return True
+
     def _read_package_file(self, path: Path) -> list[str]:
         with open(path) as f:
             return [
@@ -88,39 +137,50 @@ class PackageInstaller:
                 if line.strip() and not line.startswith("#")
             ]
 
-    def _chroot_run_as_user(self, cmd: str):
-        chroot_process([
-            "sudo", "-u", self.username,
-            "bash", "-lc", cmd
-        ])
-
     # -------------------------
     # Install methods
     # -------------------------
 
-    def install_pacman_packages(self, packages: list[str]):
+    def install_pacman_packages(self, packages: list[str]) -> list[str]:
         if not packages:
-            return
+            return []
 
-        chroot_process([
-            "pacman", "-S", "--noconfirm", "--needed",
-            *packages
-        ])
+        failures: list[str] = []
 
-    def install_pacman_file(self, path: Path):
+        for pkg in packages:
+            print(f"Installing pacman package: {pkg}")
+            ok = self._run_in_chroot([
+                "pacman",
+                "-S",
+                "--noconfirm",
+                "--needed",
+                pkg,
+            ])
+            if not ok:
+                failures.append(pkg)
+
+        if failures:
+            print(f"Failed pacman packages: {', '.join(failures)}", file=sys.stderr)
+
+        return failures
+
+    def install_pacman_file(self, path: Path) -> list[str]:
         packages = self._read_package_file(path)
-        self.install_pacman_packages(packages)
+        return self.install_pacman_packages(packages)
 
-    def install_aur_packages(self, packages: list[str]):
+    def install_aur_packages(self, packages: list[str]) -> list[str]:
         if not packages:
-            return
+            return []
 
         aur_dir = f"/home/{self.username}/.cache/aur"
 
-        self._chroot_run_as_user(f"mkdir -p {aur_dir}")
+        self._run_in_chroot_as_user(f"mkdir -p {aur_dir}")
+
+        failures: list[str] = []
 
         for pkg in packages:
-            self._chroot_run_as_user(
+            print(f"Installing AUR package: {pkg}")
+            ok = self._run_in_chroot_as_user(
                 f"""
                 set -e
                 cd {aur_dir}
@@ -131,6 +191,14 @@ class PackageInstaller:
                 """
             )
 
-    def install_aur_file(self, path: Path):
+            if not ok:
+                failures.append(pkg)
+
+        if failures:
+            print(f"Failed AUR packages: {', '.join(failures)}", file=sys.stderr)
+
+        return failures
+
+    def install_aur_file(self, path: Path) -> list[str]:
         packages = self._read_package_file(path)
-        self.install_aur_packages(packages)
+        return self.install_aur_packages(packages)
