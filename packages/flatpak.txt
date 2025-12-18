@@ -1,0 +1,3 @@
+# Add one Flatpak app ID per line, for example:
+# com.valvesoftware.Steam
+# org.mozilla.firefox

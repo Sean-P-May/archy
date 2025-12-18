@@ -5,9 +5,9 @@ Archy is an interactive Arch Linux installer script that provisions disks, insta
 ## Repository layout
 
 - `archyinstall.py` – entrypoint that guides you through selecting a setup, partitions disks, runs `pacstrap`, and installs packages inside `/mnt`.
-- `bin/copypackages.py` – utility that saves the current system's explicit pacman (native) and AUR packages into `packages/pacman.txt` and `packages/aur.txt`.
+- `bin/copypackages.py` – utility that saves the current system's explicit pacman (native), AUR, and Flatpak packages into `packages/pacman.txt`, `packages/aur.txt`, and `packages/flatpak.txt`.
 - `lib/` – helpers for loading setups, validating models, partition planning, and package installation.
-- `packages/` – shared pacman and AUR package lists referenced by setups.
+- `packages/` – shared pacman, AUR, and Flatpak package lists referenced by setups.
 - `setups/` – per-machine configuration directories. Each setup must include a `setup.yaml` file. Package lists live under the repo-root `packages/` directory and shared dotfiles/config folders live at the repository root (for example, `configs/`).
 
 ## Prerequisites
@@ -50,6 +50,7 @@ storage:
 packages:
   - pacman: pacman.txt
     aur: aur.txt
+    flatpak: flatpak.txt
 
 dotfiles:
   - copy_to: /home/sean/.config/
@@ -60,7 +61,7 @@ Key fields:
 
 - `system` – hostname, timezone, locale, and users. The first sudo-capable user is used for AUR builds.
 - `storage` – disks and partitions. Each partition specifies a mount (`/`, `/boot`, or `swap`), filesystem (`ext4`, `btrfs`, `xfs`, `vfat`), and size (e.g., `512M`, `4G`, or `fill` for the remainder).
-- `packages` – one or more groups, each pointing to optional `pacman` and `aur` package list files. Relative paths are resolved against the repo-root `packages/` directory (for example, `pacman.txt`, `aur.txt`, or `desktop/pacman.txt`).
+- `packages` – one or more groups, each pointing to optional `pacman`, `aur`, and `flatpak` package list files. Relative paths are resolved against the repo-root `packages/` directory (for example, `pacman.txt`, `aur.txt`, `flatpak.txt`, or `desktop/pacman.txt`).
 - `dotfiles` – entries that copy files or directories into the target filesystem (paths are resolved relative to the setup directory, then `setups/`, then the repository root unless absolute). Dotfiles stored at the repo root (such as `configs/` or `etc/`) are preferred so multiple setups can reuse them; missing paths are skipped.
 
 ## Running the installer

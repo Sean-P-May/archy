@@ -28,6 +28,7 @@ storage:
 packages:
   - pacman: pacman.txt
     aur: aur.txt
+    flatpak: flatpak.txt
 
 
 dotfiles:
