@@ -275,7 +275,8 @@ def apply_dotfiles(entries: list[dict], base_dirs: list[Path]):
             source = resolved_source or (base_dirs[0] / source).resolve()
 
         if not source.exists():
-            raise FileNotFoundError(source)
+            print(f"Skipping missing dotfiles source: {source}")
+            continue
 
         destination = Path(entry["copy_to"])
         if not destination.is_absolute():
