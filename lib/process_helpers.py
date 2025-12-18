@@ -72,8 +72,8 @@ def prompt_password(label: str) -> str:
 # Root handling
 # -------------------------
 
-def set_root_password():
-    pw = prompt_password("Root password")
+def set_root_password(*, password: str | None = None):
+    pw = password or prompt_password("Root password")
     chroot_process(
         ["chpasswd"],
         input=f"root:{pw}\n",
@@ -93,8 +93,8 @@ def create_user(username: str):
     chroot_process(["useradd", "-m", "-G", "wheel", username])
 
 
-def set_user_password(username: str):
-    pw = prompt_password(f"Password for {username}")
+def set_user_password(username: str, *, password: str | None = None):
+    pw = password or prompt_password(f"Password for {username}")
     chroot_process(
         ["chpasswd"],
         input=f"{username}:{pw}\n",
