@@ -286,7 +286,9 @@ def apply_dotfiles(entries: list[dict], base_dirs: list[Path]):
         destination.parent.mkdir(parents=True, exist_ok=True)
 
         if source.is_dir():
-            shutil.copytree(source, destination, dirs_exist_ok=True)
+            shutil.copytree(source, destination, dirs_exist_ok=True, symlinks=True)
+        elif source.is_symlink():
+            shutil.copy(source, destination, follow_symlinks=False)
         else:
             shutil.copy2(source, destination)
 
