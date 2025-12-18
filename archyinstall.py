@@ -45,10 +45,11 @@ def main():
     disks = Disk.from_storage(raw["storage"])
     system = SystemSettings.from_config(machine_config)
     resource_roots = [base_dir, setups_root, repo_root]
+    package_root = repo_root / "packages"
 
     package_groups = PackageGroup.from_entries(
         raw.get("packages", []),
-        base_dirs=resource_roots,
+        base_dir=package_root,
     )
 
     print(f"Users: {system.users}")

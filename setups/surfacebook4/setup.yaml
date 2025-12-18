@@ -26,8 +26,8 @@ storage:
 
 
 packages:
-  - pacman: ../pacman.txt
-    aur: ../aur.txt
+  - pacman: pacman.txt
+    aur: aur.txt
 
 
 dotfiles:
