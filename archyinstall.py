@@ -67,6 +67,11 @@ def main():
         print("Exiting!!!")
         exit()
 
+    root_password = prompt_password("Root password")
+    user_passwords: dict[str, str] = {}
+    for user in system.users:
+        user_passwords[user.username] = prompt_password(f"Password for {user.username}")
+
     partition_disks(disks, dry_run=False)
 
     roots = []
@@ -109,10 +114,10 @@ def main():
     chroot_process(["/bin/sh", "-c", f'echo "LANG={system.locale}" > /etc/locale.conf'])
     chroot_process(["/bin/sh", "-c", f'echo "{system.hostname}" > /etc/hostname'])
 
-    set_root_password()
+    set_root_password(password=root_password)
     install_bootloader(disks, enable_secure_boot=system.secure_boot)
 
-    setup_users(system)
+    setup_users(system, user_passwords=user_passwords)
 
     apply_dotfiles(raw.get("dotfiles", []), resource_roots, users=system.users)
 
@@ -162,12 +167,17 @@ def select_package_user(system: SystemSettings) -> str:
     return system.users[0].username
 
 
-def setup_users(system: SystemSettings):
+def setup_users(
+    system: SystemSettings,
+    *,
+    user_passwords: dict[str, str] | None = None,
+):
     sudo_needed = False
+    user_passwords = user_passwords or {}
 
     for user in system.users:
         create_user(user.username)
-        set_user_password(user.username)
+        set_user_password(user.username, password=user_passwords.get(user.username))
         sudo_needed = sudo_needed or user.sudo
 
     if sudo_needed:
