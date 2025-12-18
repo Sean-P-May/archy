@@ -4,7 +4,7 @@ Archy is an interactive Arch Linux installer script that provisions disks, insta
 
 ## Repository layout
 
-- `bin/archyinstall.py` – entrypoint that guides you through selecting a setup, partitions disks, runs `pacstrap`, and installs packages inside `/mnt`.
+- `archyinstall.py` – entrypoint that guides you through selecting a setup, partitions disks, runs `pacstrap`, and installs packages inside `/mnt`.
 - `bin/copypackages.py` – utility that saves the current system's explicit pacman (native) and AUR packages into `packages/pacman.txt` and `packages/aur.txt`.
 - `lib/` – helpers for loading setups, validating models, partition planning, and package installation.
 - `setups/` – per-machine configuration directories. Each setup must include a `setup.yaml` file. Package lists and shared config files can live either beside the setup directory or in the repository root for reuse across setups.
@@ -68,7 +68,7 @@ Key fields:
 2. From the repo root, run:
 
    ```bash
-   python bin/archyinstall.py
+   python archyinstall.py
    ```
 
 3. Choose a setup from the menu, review the partition plan, and confirm the prompts.

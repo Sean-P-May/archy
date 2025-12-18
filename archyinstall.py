@@ -25,7 +25,7 @@ def main():
 
     # 2. Load raw YAML
 
-    repo_root = Path(__file__).resolve().parent.parent
+    repo_root = Path(__file__).resolve().parent
     setups_root = repo_root / "setups"
 
     setup = pick_setup(setups_root)
