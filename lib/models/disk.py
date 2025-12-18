@@ -52,5 +52,8 @@ class Disk:
 
         plan = fixed[:] 
         if fill: 
-            plan.append((fill, disk_bytes - used)) 
+            remaining = disk_bytes - used
+            if remaining <= 0:
+                raise ValueError("No space left for 'fill' partition")
+            plan.append((fill, remaining)) 
         return plan
